@@ -1,0 +1,19 @@
+[hotreload]
+  suffixes = [".go"]
+  ignore = []
+
+[database]
+    database = "david"
+    hostname = "127.0.0.1"
+    port = "3306"
+    username = "david"
+    password = "1H0th1play"
+    outdir = "/opt/david-backup"
+    dbthreshold = 10000000
+    tablethreshold = 5000000
+    batchsize = 1000000
+    mysqldumppath = "/usr/bin/mysqldump"
+    dailyrotation = 5
+    weeklyrotation = 2
+    monthlyrotation = 1
+
