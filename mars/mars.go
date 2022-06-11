@@ -452,7 +452,7 @@ func GenerateSingleFileBackup(options Options, db string) error {
 	}
 
 	timestamp := strings.Replace(strings.Replace(options.ExecutionStartDate.Format("2006-01-02"), "-", "", -1), ":", "", -1)
-	filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s_%s.sql", db, "ALL", timestamp))
+	filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s.sql", db, timestamp))
 	os.MkdirAll(path.Dir(filename), os.ModePerm)
 
 	args = append(args, fmt.Sprintf("-r%s", filename))
