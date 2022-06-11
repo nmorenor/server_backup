@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"playus/server-backup/config"
 
-	mars "github.com/ralfonso-directnic/mysql-backup-golang"
+	mars "playus/server-backup/mars"
 )
 
 type DatabaseBackupWorker struct {
