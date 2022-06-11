@@ -458,7 +458,7 @@ func GenerateSingleFileBackup(options Options, db string) error {
 	args = append(args, fmt.Sprintf("-r%s", filename))
 
 	args = append(args, db)
-	args = append(args, "--column-statistics=0")
+	// args = append(args, "--column-statistics=0")
 
 	PrintMessage("mysqldump is being executed with parameters : "+strings.Join(args, " "), options.Verbosity, Info)
 
