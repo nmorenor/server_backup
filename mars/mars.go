@@ -516,8 +516,8 @@ func GetTotalRowCount(tables []Table) int {
 }
 
 // Compress compresses files into tar.gz file
-func Compress(tw *tar.Writer, path string) error {
-	file, err := os.Open(path)
+func Compress(tw *tar.Writer, p string) error {
+	file, err := os.Open(p)
 	if err != nil {
 		return err
 	}
@@ -525,7 +525,7 @@ func Compress(tw *tar.Writer, path string) error {
 	if stat, err := file.Stat(); err == nil {
 		// now lets create the header as needed for this file within the tarball
 		header := new(tar.Header)
-		header.Name = path
+		header.Name = path.Base(p)
 		header.Size = stat.Size()
 		header.Mode = int64(stat.Mode())
 		header.ModTime = stat.ModTime()
@@ -539,7 +539,7 @@ func Compress(tw *tar.Writer, path string) error {
 		}
 
 		// Removing the original file after zipping it
-		err = os.Remove(path)
+		err = os.Remove(p)
 
 		if err != nil {
 			fmt.Println(err)
