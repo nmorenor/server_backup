@@ -21,10 +21,13 @@ func main() {
 		RunOnce:    false,
 		StartAfter: time.Time{},
 		TaskFunc: func() error {
+			fmt.Println("Start running backup: ")
 			database.Worker.DoBackup()
 			return nil
 		},
-		ErrFunc: func(error) {
+		ErrFunc: func(err error) {
+			fmt.Println("Error running backup: ")
+			fmt.Println(err.Error())
 		},
 	})
 	if err != nil {
