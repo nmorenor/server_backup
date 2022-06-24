@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"playus/server-backup/config"
 	"playus/server-backup/database"
 
 	"github.com/madflojo/tasks"
@@ -15,9 +16,10 @@ func main() {
 	scheduler := tasks.New()
 	defer scheduler.Stop()
 	// Add a task
+	interval := int(config.Conf.Get("database.secondsInterval").(int))
 	_, err := scheduler.Add(&tasks.Task{
 		Mutex:      sync.Mutex{},
-		Interval:   time.Duration(24 * time.Hour),
+		Interval:   time.Duration(time.Duration(interval) * time.Second),
 		RunOnce:    false,
 		StartAfter: time.Time{},
 		TaskFunc: func() error {

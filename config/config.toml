@@ -16,4 +16,5 @@
     dailyrotation = 5
     weeklyrotation = 2
     monthlyrotation = 1
+    secondsInterval = 86400
 
