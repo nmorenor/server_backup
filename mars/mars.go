@@ -35,8 +35,6 @@ const (
 	Error = 1 << iota // c == 4
 )
 
-var timeNow = time.Now()
-
 // Table model struct for table metadata
 type Table struct {
 	TableName string
@@ -178,7 +176,7 @@ func NewOptions(hostname string, bind string, username string, password string, 
 		MySQLDumpPath:            mysqldumppath,
 		OutputDirectory:          outputDirectory,
 		DefaultsProvidedByUser:   defaultsProvidedByUser,
-		ExecutionStartDate:       timeNow,
+		ExecutionStartDate:       time.Now(),
 		DailyRotation:            dailyrotation,
 		WeeklyRotation:           weeklyrotation,
 		MonthlyRotation:          monthlyrotation,
@@ -240,7 +238,7 @@ func GenerateTableBackup(options Options, db string, table Table) error {
 		}
 
 		timestamp := strings.Replace(strings.Replace(options.ExecutionStartDate.Format("2006-01-02"), "-", "", -1), ":", "", -1)
-		filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s%d_%s.sql", db, table.TableName, index, timestamp))
+		filename := path.Join(options.OutputDirectory, "daily", options.ExecutionStartDate.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s%d_%s.sql", db, table.TableName, index, timestamp))
 		os.MkdirAll(path.Dir(filename), os.ModePerm)
 
 		args = append(args, fmt.Sprintf("-r%s", filename))
@@ -314,7 +312,7 @@ func GenerateSchemaBackup(options Options, db string) error {
 	}
 
 	timestamp := strings.Replace(strings.Replace(options.ExecutionStartDate.Format("2006-01-02"), "-", "", -1), ":", "", -1)
-	filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s_%s.sql", db, "SCHEMA", timestamp))
+	filename := path.Join(options.OutputDirectory, "daily", options.ExecutionStartDate.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s_%s.sql", db, "SCHEMA", timestamp))
 	os.MkdirAll(path.Dir(filename), os.ModePerm)
 
 	args = append(args, fmt.Sprintf("-r%s", filename))
@@ -385,7 +383,7 @@ func GenerateSingleFileDataBackup(options Options, db string) error {
 	}
 
 	timestamp := strings.Replace(strings.Replace(options.ExecutionStartDate.Format("2006-01-02"), "-", "", -1), ":", "", -1)
-	filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s_%s.sql", db, "DATA", timestamp))
+	filename := path.Join(options.OutputDirectory, "daily", options.ExecutionStartDate.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s_%s.sql", db, "DATA", timestamp))
 	os.MkdirAll(path.Dir(filename), os.ModePerm)
 
 	args = append(args, fmt.Sprintf("-r%s", filename))
@@ -452,7 +450,7 @@ func GenerateSingleFileBackup(options Options, db string) error {
 	}
 
 	timestamp := strings.Replace(strings.Replace(options.ExecutionStartDate.Format("2006-01-02"), "-", "", -1), ":", "", -1)
-	filename := path.Join(options.OutputDirectory, "daily", timeNow.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s.sql", db, timestamp))
+	filename := path.Join(options.OutputDirectory, "daily", options.ExecutionStartDate.Format("2006-01-02"), db+"-"+options.ExecutionStartDate.Format("2006-01-02"), fmt.Sprintf("%s_%s.sql", db, timestamp))
 	os.MkdirAll(path.Dir(filename), os.ModePerm)
 
 	args = append(args, fmt.Sprintf("-r%s", filename))
@@ -578,7 +576,7 @@ func BackupRotation(options Options) {
 	if options.MonthlyRotation > 0 {
 		monthly := ListDirs(options.OutputDirectory + "/monthly")
 		if len(monthly) == 1 {
-			CopyDir(options.OutputDirectory+"/daily/"+timeNow.Format("2006-01-02"), options.OutputDirectory+"/monthly/"+timeNow.Format("2006-01-02"))
+			CopyDir(options.OutputDirectory+"/daily/"+options.ExecutionStartDate.Format("2006-01-02"), options.OutputDirectory+"/monthly/"+options.ExecutionStartDate.Format("2006-01-02"))
 		} else {
 			newestFile := 0
 
@@ -588,7 +586,7 @@ func BackupRotation(options Options) {
 					if err != nil {
 						fmt.Println(err)
 					}
-					diff := timeNow.Sub(file.ModTime())
+					diff := options.ExecutionStartDate.Sub(file.ModTime())
 					days := int(diff.Hours() / 24)
 					if (len(monthly) - 1) < options.MonthlyRotation {
 						if newestFile < days {
@@ -606,7 +604,7 @@ func BackupRotation(options Options) {
 				}
 			}
 			if newestFile >= 30 {
-				CopyDir(options.OutputDirectory+"/daily/"+timeNow.Format("2006-01-02"), options.OutputDirectory+"/monthly/"+timeNow.Format("2006-01-02"))
+				CopyDir(options.OutputDirectory+"/daily/"+options.ExecutionStartDate.Format("2006-01-02"), options.OutputDirectory+"/monthly/"+options.ExecutionStartDate.Format("2006-01-02"))
 			}
 		}
 	}
@@ -615,7 +613,7 @@ func BackupRotation(options Options) {
 	if options.MonthlyRotation > 0 {
 		weekly := ListDirs(options.OutputDirectory + "/weekly")
 		if len(weekly) == 1 {
-			CopyDir(options.OutputDirectory+"/daily/"+timeNow.Format("2006-01-02"), options.OutputDirectory+"/weekly/"+timeNow.Format("2006-01-02"))
+			CopyDir(options.OutputDirectory+"/daily/"+options.ExecutionStartDate.Format("2006-01-02"), options.OutputDirectory+"/weekly/"+options.ExecutionStartDate.Format("2006-01-02"))
 		} else {
 			newestFile := 0
 
@@ -625,7 +623,7 @@ func BackupRotation(options Options) {
 					if err != nil {
 						fmt.Println(err)
 					}
-					diff := timeNow.Sub(file.ModTime())
+					diff := options.ExecutionStartDate.Sub(file.ModTime())
 					days := int(diff.Hours() / 24)
 					if (len(weekly) - 1) < options.WeeklyRotation {
 						if newestFile < days {
@@ -643,7 +641,7 @@ func BackupRotation(options Options) {
 				}
 			}
 			if newestFile >= 7 {
-				CopyDir(options.OutputDirectory+"/daily/"+timeNow.Format("2006-01-02"), options.OutputDirectory+"/weekly/"+timeNow.Format("2006-01-02"))
+				CopyDir(options.OutputDirectory+"/daily/"+options.ExecutionStartDate.Format("2006-01-02"), options.OutputDirectory+"/weekly/"+options.ExecutionStartDate.Format("2006-01-02"))
 			}
 		}
 	}
@@ -658,7 +656,7 @@ func BackupRotation(options Options) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				diff := timeNow.Sub(file.ModTime())
+				diff := options.ExecutionStartDate.Sub(file.ModTime())
 				days := int(diff.Hours() / 24)
 
 				if (len(daily) - 1) < options.DailyRotation {
@@ -869,11 +867,12 @@ func GetOptions() *Options {
 		os.Exit(1)
 	}
 
-	os.MkdirAll(outputdir+"/daily/"+timeNow.Format("2006-01-02"), os.ModePerm)
+	opts := NewOptions(hostname, bind, username, password, databases, excludeddatabases, dbthreshold, tablethreshold, batchsize, forcesplit, additionals, verbosity, mysqldumppath, outputdir, defaultsProvidedByUser, dailyrotation, weeklyrotation, monthlyrotation)
+
+	os.MkdirAll(outputdir+"/daily/"+opts.ExecutionStartDate.Format("2006-01-02"), os.ModePerm)
 	os.MkdirAll(outputdir+"/weekly", os.ModePerm)
 	os.MkdirAll(outputdir+"/monthly", os.ModePerm)
 
-	opts := NewOptions(hostname, bind, username, password, databases, excludeddatabases, dbthreshold, tablethreshold, batchsize, forcesplit, additionals, verbosity, mysqldumppath, outputdir, defaultsProvidedByUser, dailyrotation, weeklyrotation, monthlyrotation)
 	stropts, _ := json.MarshalIndent(opts, "", "\t")
 	PrintMessage("Running with parameters", verbosity, Info)
 	PrintMessage(string(stropts), verbosity, Info)
