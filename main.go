@@ -16,7 +16,7 @@ func main() {
 	scheduler := tasks.New()
 	defer scheduler.Stop()
 	// Add a task
-	interval := int(config.Conf.Get("database.secondsInterval").(int))
+	interval := int(config.Conf.Get("database.secondsInterval").(int64))
 	_, err := scheduler.Add(&tasks.Task{
 		Mutex:      sync.Mutex{},
 		Interval:   time.Duration(time.Duration(interval) * time.Second),
