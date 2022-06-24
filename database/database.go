@@ -32,7 +32,7 @@ func (worker *DatabaseBackupWorker) DoBackup() {
 		int(config.Conf.Get("database.batchsize").(int64)),      // batchsize
 		false, // forcesplit
 		"",    // additionals
-		1,     // verbosity
+		int(config.Conf.Get("database.verbosity").(int64)), // verbosity
 		config.Conf.Get("database.mysqldumppath").(string),
 		config.Conf.Get("database.outdir").(string),
 		true,

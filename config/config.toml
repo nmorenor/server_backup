@@ -17,4 +17,5 @@
     weeklyrotation = 2
     monthlyrotation = 1
     secondsInterval = 86400
+    verbosity = 1
 
