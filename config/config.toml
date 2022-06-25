@@ -18,7 +18,7 @@
     verbosity = 1
 
 [dirbackup]
-    enabled = true
+    enabled = false
     secondsInterval = 3600
     endpoint = "https://nyc3.digitaloceanspaces.com"
     # access key
