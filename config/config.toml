@@ -1,14 +1,12 @@
-[hotreload]
-  suffixes = [".go"]
-  ignore = []
-
 [database]
+    enabled = true
+    # comma separated shchema names
     database = "david"
     hostname = "127.0.0.1"
     port = "3306"
     username = "david"
-    password = "1H0th1play"
-    outdir = "/opt/david-backup"
+    password = "${yourpassword}"
+    outdir = "/opt/server-backup"
     dbthreshold = 10000000
     tablethreshold = 5000000
     batchsize = 1000000
@@ -16,6 +14,18 @@
     dailyrotation = 5
     weeklyrotation = 2
     monthlyrotation = 1
-    secondsInterval = 86400
+    secondsInterval = 3600
     verbosity = 1
 
+[dirbackup]
+    enabled = true
+    secondsInterval = 3600
+    endpoint = "https://nyc3.digitaloceanspaces.com"
+    # access key
+    key = "${yourkey}"
+    # access secret
+    secret = "${yoursecret}"
+    bucket = "${yourbucket}"
+    region = "${yourregion}"
+    # comma separated ${BucketName}|${prefix_target_on_bucket}|${dirPath}
+    dirs = "BACKUP_BUCKET|MY_PREFIX|/home/nacho/target,BACKUP_BUCKET|MY_PREFIX|/home/nacho/target2"

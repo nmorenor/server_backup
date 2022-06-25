@@ -1,5 +1,6 @@
 package mars
 
+// modified from https://github.com/maurodelazeri/mysql-backup-golang
 import (
 	"archive/tar"
 	"compress/gzip"
