@@ -204,6 +204,7 @@ func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
 		return err
 	}
 
+	// TODO: send mime type
 	result, err := util.uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String(util.Bucket),
 		Key:    aws.String(targetKey),
