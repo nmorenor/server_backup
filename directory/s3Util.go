@@ -13,7 +13,6 @@ import (
 
 type S3Util struct {
 	Bucket           string
-	Dir              string
 	Prefix           string
 	client           *s3.S3
 	listInput        *s3.ListObjectsV2Input
@@ -27,11 +26,10 @@ type S3Util struct {
 func NewS3Util(bucket string, prefix string, dir string, s3Client *s3.S3, uploader *s3manager.Uploader, downloader *s3manager.Downloader) *S3Util {
 	return &S3Util{
 		Bucket:           bucket,
-		Dir:              dir,
 		Prefix:           prefix,
 		client:           s3Client,
 		page:             0,
-		maxKeys:          int64(100),
+		maxKeys:          int64(1),
 		listInput:        nil,
 		listInputHasMore: false,
 		uploader:         uploader,
@@ -57,8 +55,8 @@ func (util *S3Util) ObjectExists(keyFile string) bool {
 		Bucket: aws.String(util.Bucket),
 		Key:    aws.String(keyFile),
 	}
-	_, err := util.client.GetObject(input)
-	return err != nil
+	object, err := util.client.GetObject(input)
+	return object != nil && err == nil
 }
 
 func (util *S3Util) GetNextPage() *[]*s3.Object {
@@ -87,6 +85,119 @@ func (util *S3Util) GetNextPage() *[]*s3.Object {
 	return &result
 }
 
+// path without prefix
+func (util *S3Util) GetTopDirectories(path string) []string {
+	dirs := &map[string]bool{}
+	targetPath := fmt.Sprintf("%s/%s", util.Prefix, path)
+	listInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(util.Bucket),
+		Prefix:  aws.String(targetPath),
+		MaxKeys: &util.maxKeys,
+	}
+	util.processTopListInput(targetPath, dirs, listInput)
+
+	result := []string{}
+	for key := range *dirs {
+		result = append(result, key)
+	}
+	return result
+}
+
+func (util *S3Util) processTopListInput(targetPath string, dirs *map[string]bool, listInput *s3.ListObjectsV2Input) {
+	resp, err := util.client.ListObjectsV2(listInput)
+	if checkErr(err) {
+		return
+	}
+	for listInput != nil {
+		for _, nextObject := range resp.Contents {
+			if nextObject == nil {
+				continue
+			}
+			objectKey := (*nextObject.Key)
+			suffix := objectKey[len(targetPath)+1:]
+			index := strings.Index(suffix, "/")
+			if index < 0 {
+				// not a directory
+				continue
+			}
+			dirName := suffix[0:index]
+			_, exists := (*dirs)[dirName]
+
+			if exists {
+				// already on the map
+				continue
+			}
+			(*dirs)[dirName] = true
+		}
+		if resp.ContinuationToken == nil {
+			// end the loop
+			listInput = nil
+		} else {
+			listInput := &s3.ListObjectsV2Input{
+				Bucket:            aws.String(util.Bucket),
+				Prefix:            aws.String(targetPath),
+				MaxKeys:           &util.maxKeys,
+				ContinuationToken: resp.ContinuationToken,
+			}
+			resp, err = util.client.ListObjectsV2(listInput)
+			if checkErr(err) {
+				return
+			}
+		}
+	}
+}
+
+func (util *S3Util) CleanFiles(path string) []string {
+	dirs := &map[string]bool{}
+	targetPath := fmt.Sprintf("%s/%s", util.Prefix, path)
+	listInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(util.Bucket),
+		Prefix:  aws.String(targetPath),
+		MaxKeys: &util.maxKeys,
+	}
+	util.processCleanFiles(targetPath, dirs, listInput)
+
+	result := []string{}
+	for key := range *dirs {
+		result = append(result, key)
+	}
+	return result
+}
+
+func (util *S3Util) processCleanFiles(targetPath string, dirs *map[string]bool, listInput *s3.ListObjectsV2Input) {
+	resp, err := util.client.ListObjectsV2(listInput)
+	if checkErr(err) {
+		return
+	}
+	for listInput != nil {
+		for _, nextObject := range resp.Contents {
+			if nextObject == nil {
+				continue
+			}
+			objectKey := (*nextObject.Key)
+			err = util.DeleteFile(objectKey)
+			if checkErr(err) {
+				continue
+			}
+		}
+		if resp.ContinuationToken == nil {
+			// end the loop
+			listInput = nil
+		} else {
+			listInput := &s3.ListObjectsV2Input{
+				Bucket:            aws.String(util.Bucket),
+				Prefix:            aws.String(targetPath),
+				MaxKeys:           &util.maxKeys,
+				ContinuationToken: resp.ContinuationToken,
+			}
+			resp, err = util.client.ListObjectsV2(listInput)
+			if checkErr(err) {
+				return
+			}
+		}
+	}
+}
+
 func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
 	file, err := os.Open(targetFile)
 	if checkErr(err) {
@@ -103,7 +214,7 @@ func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
 		return err
 	}
 
-	fmt.Println("[INFO] Upload successfully! Path of archive:", result.Location)
+	fmt.Println("[INFO] Upload successfully! Path of archive:" + result.Location)
 	return nil
 }
 
@@ -119,9 +230,9 @@ func (util *S3Util) DeleteFile(targetKey string) error {
 	return nil
 }
 
-func (util *S3Util) DownloadFile(targetKey string) error {
+func (util *S3Util) DownloadFile(targetKey string, targetDir string) error {
 	// all backups have 3 prefix ${dirPrefix/daily|weekly|monthly/date}
-	suffix, err := util.extractTargetSuffix(targetKey)
+	suffix, err := util.ExtractTargetSuffix(targetKey)
 	if checkErr(err) {
 		return err
 	}
@@ -131,12 +242,9 @@ func (util *S3Util) DownloadFile(targetKey string) error {
 		return err
 	}
 
-	targetFile := filepath.Join(util.Dir, *suffix)
+	targetFile := filepath.Join(targetDir, *suffix)
 
-	exists, err := fileExist(targetFile)
-	if err != nil {
-		return err
-	}
+	exists := checkFileExists(targetFile)
 	if exists {
 		err := os.Remove(targetFile)
 		if err != nil {
@@ -168,21 +276,21 @@ func (util *S3Util) DownloadFile(targetKey string) error {
 	return nil
 }
 
-func (util *S3Util) extractTargetSuffix(targetKey string) (*string, error) {
+func (util *S3Util) ExtractTargetSuffix(targetKey string) (*string, error) {
 	index := strings.Index(targetKey, "/")
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
 	}
-	suffix := targetKey[(index + 1):]
+	suffix := targetKey[index:]
 	index = strings.Index(suffix, "/")
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
 	}
-	suffix = suffix[(index + 1):]
+	suffix = suffix[index+1:]
 	index = strings.Index(suffix, "/")
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
 	}
-	suffix = suffix[(index + 1):]
+	suffix = suffix[index:]
 	return &suffix, nil
 }

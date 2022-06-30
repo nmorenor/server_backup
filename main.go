@@ -57,6 +57,7 @@ func scheduleDirBackup(scheduler *tasks.Scheduler) {
 	if err != nil {
 		fmt.Println("Error scheduling Dir backup")
 	}
+	directory.Worker.DoBackup()
 }
 
 func main() {

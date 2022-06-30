@@ -1,10 +1,12 @@
 package directory
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"playus/server-backup/config"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -13,6 +15,31 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+const RFC3339NoTime = "2006-01-02" // parse date format
+const DAILY = "daily"
+const WEEKLY = "weekly"
+const MONTHLY = "monthly"
+
+/**
+ * Allow sort of date directory names
+ * Conform sort.Interface
+ */
+type dirDate struct {
+	Value   string
+	DayTime time.Time
+}
+type dirDateList []dirDate
+
+func (dirDate dirDateList) Len() int {
+	return len(dirDate)
+}
+func (dirDate dirDateList) Less(i, j int) bool {
+	return dirDate[i].DayTime.Before(dirDate[j].DayTime)
+}
+func (dirDate dirDateList) Swap(i, j int) {
+	dirDate[i], dirDate[j] = dirDate[j], dirDate[i]
+}
+
 type BackupDirectories struct {
 	Bucket      string
 	Prefix      string
@@ -20,12 +47,15 @@ type BackupDirectories struct {
 }
 
 type DirectoryBackupWorker struct {
-	Key      string
-	Secret   string
-	Region   string
-	Endpoint string
-	Dirs     []BackupDirectories
-	Running  bool
+	Key             string
+	Secret          string
+	Region          string
+	Endpoint        string
+	Dirs            []BackupDirectories
+	DailyRotation   int
+	WeeklyRotation  int
+	MonthlyRotation int
+	Running         bool
 }
 
 var (
@@ -34,12 +64,15 @@ var (
 
 func newDirectoryBackupWorker() *DirectoryBackupWorker {
 	worker := &DirectoryBackupWorker{
-		Key:      config.Conf.Get("dirbackup.key").(string),
-		Secret:   config.Conf.Get("dirbackup.secret").(string),
-		Region:   config.Conf.Get("dirbackup.region").(string),
-		Endpoint: config.Conf.Get("dirbackup.endpoint").(string),
-		Dirs:     getDirectories(config.Conf.Get("dirbackup.dirs").(string)),
-		Running:  false,
+		Key:             config.Conf.Get("dirbackup.key").(string),
+		Secret:          config.Conf.Get("dirbackup.secret").(string),
+		Region:          config.Conf.Get("dirbackup.region").(string),
+		Endpoint:        config.Conf.Get("dirbackup.endpoint").(string),
+		Dirs:            getDirectories(config.Conf.Get("dirbackup.dirs").(string)),
+		DailyRotation:   int(config.Conf.Get("dirbackup.dailyrotation").(int64)),
+		WeeklyRotation:  int(config.Conf.Get("dirbackup.weeklyrotation").(int64)),
+		MonthlyRotation: int(config.Conf.Get("dirbackup.monthlyrotation").(int64)),
+		Running:         false,
 	}
 	return worker
 }
@@ -85,7 +118,7 @@ func (worker *DirectoryBackupWorker) DoBackup() {
 		for j := range nextBucket.Directories {
 			nextDir := nextBucket.Directories[j]
 
-			removeHandler := NewRemoveHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader)
+			removeHandler := NewRemoveHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)
 			removeHandler.Handle()
 
 			addHandler := NewAddHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader)
@@ -109,14 +142,14 @@ func getDirectories(dirs string) []BackupDirectories {
 		if separator < 0 {
 			fmt.Printf("Invalid directory %s no bucket specified", nextTarget)
 		}
-		bucket := nextTarget[0:(separator - 1)]
+		bucket := nextTarget[0:(separator)]
 
 		remaining := nextTarget[(separator + 1):]
 		separator = strings.Index(remaining, "|")
 		if separator < 0 {
 			fmt.Printf("Invalid directory %s no bucket prefix specified", nextTarget)
 		}
-		prefix := remaining[0:(separator - 1)]
+		prefix := remaining[0:(separator)]
 		targetDir := remaining[(separator + 1):]
 		if !isDirectory(targetDir) {
 			continue
@@ -130,9 +163,11 @@ func getDirectories(dirs string) []BackupDirectories {
 				Prefix:      prefix,
 				Directories: []string{},
 			}
-			buckets[bucket] = targetBucket
+			targetBucket.Directories = append(targetBucket.Directories, targetDir)
+			buckets[bucketKey] = targetBucket
+		} else {
+			targetBucket.Directories = append(targetBucket.Directories, targetDir)
 		}
-		targetBucket.Directories = append(targetBucket.Directories, targetDir)
 	}
 	result := []BackupDirectories{}
 	for _, val := range buckets {
@@ -141,9 +176,11 @@ func getDirectories(dirs string) []BackupDirectories {
 	return result
 }
 
+// package level
+
 func isDirectory(dir string) bool {
-	exists, err := fileExist(dir)
-	if !exists || err != nil {
+	exists := checkFileExists(dir)
+	if !exists {
 		return false
 	}
 
@@ -159,18 +196,6 @@ func isDirectory(dir string) bool {
 		return false
 	}
 	return true
-}
-
-func fileExist(file string) (bool, error) {
-	stat, err := os.Stat(file)
-	if err != nil && os.IsNotExist(err) {
-		checkErr(err)
-		return false, nil
-	}
-	if err != nil {
-		return true, err
-	}
-	return stat != nil, nil
 }
 
 func removeDuplicates(elements []string) []string {
@@ -202,4 +227,9 @@ func checkErr(err error) bool {
 
 func notRunning(worker *DirectoryBackupWorker) {
 	worker.Running = false
+}
+
+func checkFileExists(filePath string) bool {
+	_, error := os.Stat(filePath)
+	return !errors.Is(error, os.ErrNotExist)
 }

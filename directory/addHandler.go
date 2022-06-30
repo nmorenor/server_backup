@@ -27,8 +27,13 @@ func NewAddHandler(bucket string, prefix string, dir string, s3Client *s3.S3, up
 }
 
 func (handler *AddHandler) Handle() {
-	fmt.Printf("Starting add handler for bucket %s in directory %s", handler.Bucket, handler.Dir)
-	entries, err := ioutil.ReadDir(handler.Dir)
+	fmt.Printf("Starting add handler for bucket %s in directory %s \n", handler.Bucket, handler.Dir)
+
+	handler.handleFileSystemAdditions()
+}
+
+func (handler *AddHandler) handleFileSystemAdditions() {
+	_, err := ioutil.ReadDir(handler.Dir)
 	if err != nil {
 		return
 	}
@@ -36,11 +41,18 @@ func (handler *AddHandler) Handle() {
 	queue.Enqueue(handler.Dir)
 
 	now := time.Now()
-
-	targetPrefix := "daily/" + now.Format("2006-01-02") + "/"
+	// only sync today
+	targetPrefix := "daily/" + now.Format(RFC3339NoTime) + "/"
 
 	for !queue.Empty() {
 		nextDir, err := queue.Dequeue()
+		if err != nil {
+			return
+		}
+		entries, err := ioutil.ReadDir(nextDir)
+		if err != nil {
+			return
+		}
 		if checkErr(err) {
 			continue
 		}
@@ -57,10 +69,9 @@ func (handler *AddHandler) Handle() {
 				continue
 			}
 			targetKey := handler.Prefix + "/" + targetPrefix + rel
-			if !handler.util.ObjectExists(targetKey) {
+			if !handler.util.ObjectExists(targetKey) { // TODO: make sure md5 are the same
 				handler.util.UploadFile(absPath, targetKey)
 			}
 		}
 	}
-
 }

@@ -1,5 +1,5 @@
 [database]
-    enabled = true
+    enabled = false
     # comma separated shchema names
     database = "david"
     hostname = "127.0.0.1"
@@ -20,12 +20,16 @@
 [dirbackup]
     enabled = false
     secondsInterval = 3600
-    endpoint = "https://nyc3.digitaloceanspaces.com"
+    endpoint = "https://sfo3.digitaloceanspaces.com"
     # access key
     key = "${yourkey}"
     # access secret
     secret = "${yoursecret}"
     bucket = "${yourbucket}"
-    region = "${yourregion}"
+    # us-east-1 is required for digital ocean spaces
+    region = "us-east-1"
     # comma separated ${BucketName}|${prefix_target_on_bucket}|${dirPath}
     dirs = "BACKUP_BUCKET|MY_PREFIX|/home/nacho/target,BACKUP_BUCKET|MY_PREFIX|/home/nacho/target2"
+    dailyrotation = 5
+    weeklyrotation = 2
+    monthlyrotation = 1
