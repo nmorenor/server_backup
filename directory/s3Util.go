@@ -282,7 +282,7 @@ func (util *S3Util) ExtractTargetSuffix(targetKey string) (*string, error) {
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
 	}
-	suffix := targetKey[index:]
+	suffix := targetKey[index+1:]
 	index = strings.Index(suffix, "/")
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
@@ -292,6 +292,6 @@ func (util *S3Util) ExtractTargetSuffix(targetKey string) (*string, error) {
 	if index < 0 {
 		return nil, fmt.Errorf("invalid target key %s", targetKey)
 	}
-	suffix = suffix[index:]
+	suffix = suffix[index+1:]
 	return &suffix, nil
 }

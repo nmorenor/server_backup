@@ -57,8 +57,7 @@ func (handler *RemoveHandler) handleFileSystemDeletions() {
 			if checkErr(err) {
 				continue
 			}
-			s := *extractedSuffix
-			suffix := s[len(targetDatePrefix):]
+			suffix := *extractedSuffix
 			targetPath := filepath.Join(handler.Dir, suffix)
 
 			if !checkFileExists(targetPath) {
