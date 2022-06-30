@@ -44,7 +44,8 @@ func (handler *RemoveHandler) Handle() {
  */
 func (handler *RemoveHandler) handleFileSystemDeletions() {
 	// only sync todays dir
-	targetPrefix := "daily/" + time.Now().Format(RFC3339NoTime) + "/"
+	targetDatePrefix := fmt.Sprintf("/%s/", time.Now().Format(RFC3339NoTime))
+	targetPrefix := fmt.Sprintf("%s/daily%s", handler.util.Prefix, targetDatePrefix)
 	prefixUtil := NewS3Util(handler.util.Bucket, targetPrefix, handler.Dir, handler.util.client, handler.util.uploader, handler.util.downloader)
 	for prefixUtil.HasMore() {
 		for _, next := range *prefixUtil.GetNextPage() {
@@ -52,11 +53,13 @@ func (handler *RemoveHandler) handleFileSystemDeletions() {
 				continue
 			}
 			remotePath := *next.Key
-			suffix, err := prefixUtil.ExtractTargetSuffix(remotePath)
+			extractedSuffix, err := prefixUtil.ExtractTargetSuffix(remotePath)
 			if checkErr(err) {
 				continue
 			}
-			targetPath := filepath.Join(handler.Dir, *suffix)
+			s := *extractedSuffix
+			suffix := s[len(targetDatePrefix):]
+			targetPath := filepath.Join(handler.Dir, suffix)
 
 			if !checkFileExists(targetPath) {
 				// file does not exist, delete from remote

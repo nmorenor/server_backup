@@ -29,7 +29,7 @@ func NewS3Util(bucket string, prefix string, dir string, s3Client *s3.S3, upload
 		Prefix:           prefix,
 		client:           s3Client,
 		page:             0,
-		maxKeys:          int64(1),
+		maxKeys:          int64(100),
 		listInput:        nil,
 		listInputHasMore: false,
 		uploader:         uploader,
