@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/aws/aws-sdk-go v1.44.42
 	github.com/fatih/color v1.13.0
+	github.com/gabriel-vasile/mimetype v1.4.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/madflojo/tasks v1.0.4
 	github.com/mattn/go-colorable v0.1.12 // indirect

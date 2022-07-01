@@ -5,6 +5,38 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch view",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": [
+                "-view",
+                "-bucket",
+                "nmorenor"
+            ]
+        },
+        {
+            "name": "Launch restore",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "main.go",
+            "args": [
+                "-restore",
+                "-dir",
+                "/Users/nacho/Desktop/testSpacesRestore",
+                "-bucket",
+                "nmorenor",
+                "-key",
+                "test",
+                "-rotation",
+                "daily",
+                "-date",
+                "2022-07-01"
+            ]
+        },
+        {
             "name": "Launch backup",
             "type": "go",
             "request": "launch",

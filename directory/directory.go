@@ -1,8 +1,11 @@
 package directory
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"playus/server-backup/config"
 	"strings"
@@ -19,6 +22,7 @@ const RFC3339NoTime = "2006-01-02" // parse date format
 const DAILY = "daily"
 const WEEKLY = "weekly"
 const MONTHLY = "monthly"
+const SHA256 = "Checksumsha256"
 
 /**
  * Allow sort of date directory names
@@ -118,11 +122,11 @@ func (worker *DirectoryBackupWorker) DoBackup() {
 		for j := range nextBucket.Directories {
 			nextDir := nextBucket.Directories[j]
 
+			addHandler := NewAddHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)
+			addHandler.Handle()
+
 			removeHandler := NewRemoveHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)
 			removeHandler.Handle()
-
-			addHandler := NewAddHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader)
-			addHandler.Handle()
 		}
 	}
 }
@@ -219,7 +223,7 @@ func removeDuplicates(elements []string) []string {
 
 func checkErr(err error) bool {
 	if err != nil {
-		fmt.Printf("[ERROR] %s", err)
+		fmt.Println(fmt.Printf("[ERROR] %s", err))
 		return true
 	}
 	return false
@@ -232,4 +236,29 @@ func notRunning(worker *DirectoryBackupWorker) {
 func checkFileExists(filePath string) bool {
 	_, error := os.Stat(filePath)
 	return !errors.Is(error, os.ErrNotExist)
+}
+
+func fileSha256(filePath string) *string {
+	f, err := os.Open(filePath)
+	if checkErr(err) {
+		return nil
+	}
+
+	defer f.Close()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		checkErr(err)
+		return nil
+	}
+	val := fmt.Sprintf("%x", h.Sum(nil))
+	return &val
+}
+
+func prettyEncode(data interface{}, out io.Writer) error {
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "    ")
+	if err := enc.Encode(data); err != nil {
+		return err
+	}
+	return nil
 }

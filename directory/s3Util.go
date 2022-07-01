@@ -1,14 +1,16 @@
 package directory
 
 import (
+	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+
+	"github.com/gabriel-vasile/mimetype"
 )
 
 type S3Util struct {
@@ -50,12 +52,16 @@ func (util *S3Util) HasMore() bool {
 	return util.IsStart() || util.listInputHasMore
 }
 
-func (util *S3Util) ObjectExists(keyFile string) bool {
+func (util *S3Util) ObjectExists(keyFile string, checkSum *string) bool {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(util.Bucket),
 		Key:    aws.String(keyFile),
 	}
 	object, err := util.client.GetObject(input)
+	if object != nil && err == nil && checkSum != nil && object.Metadata != nil {
+		checkSumVal, exists := object.Metadata[SHA256]
+		return exists && (*checkSumVal) == (*checkSum)
+	}
 	return object != nil && err == nil
 }
 
@@ -199,17 +205,35 @@ func (util *S3Util) processCleanFiles(targetPath string, dirs *map[string]bool, 
 }
 
 func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
+	checkSum := fileSha256(targetFile)
+	if checkSum == nil {
+		errMsg := fmt.Sprintf("Can't get checksum of %s", targetFile)
+		fmt.Println(errMsg)
+		return errors.New(errMsg)
+	}
+	mtype, err := mimetype.DetectFile(targetFile)
+	checkErr(err)
+	var contentType string
+	if mtype != nil {
+		contentType = mtype.String()
+	}
 	file, err := os.Open(targetFile)
 	if checkErr(err) {
 		return err
 	}
+	uploadInput := s3manager.UploadInput{
+		Bucket:         aws.String(util.Bucket),
+		Key:            aws.String(targetKey),
+		Body:           file,
+		ChecksumSHA256: checkSum,
+	}
+	if mtype != nil {
+		uploadInput.ContentType = aws.String(contentType)
+	}
+	uploadInput.Metadata = map[string]*string{}
+	uploadInput.Metadata[SHA256] = checkSum
 
-	// TODO: send mime type
-	result, err := util.uploader.Upload(&s3manager.UploadInput{
-		Bucket: aws.String(util.Bucket),
-		Key:    aws.String(targetKey),
-		Body:   file,
-	})
+	result, err := util.uploader.Upload(&uploadInput)
 
 	if checkErr(err) {
 		return err
@@ -231,20 +255,7 @@ func (util *S3Util) DeleteFile(targetKey string) error {
 	return nil
 }
 
-func (util *S3Util) DownloadFile(targetKey string, targetDir string) error {
-	// all backups have 3 prefix ${dirPrefix/daily|weekly|monthly/date}
-	suffix, err := util.ExtractTargetSuffix(targetKey)
-	if checkErr(err) {
-		return err
-	}
-	if suffix == nil {
-		err := fmt.Errorf("invalid target suffix")
-		checkErr(err)
-		return err
-	}
-
-	targetFile := filepath.Join(targetDir, *suffix)
-
+func (util *S3Util) DownloadFile(targetKey string, targetFile string) error {
 	exists := checkFileExists(targetFile)
 	if exists {
 		err := os.Remove(targetFile)
