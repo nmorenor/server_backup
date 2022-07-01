@@ -438,7 +438,7 @@ func GenerateSingleFileDataBackup(options Options, db string) error {
 	return nil
 }
 
-func GenerateSingleFileBackup(options Options, db string) error {
+func GenerateSingleFileBackup(options Options, db string) (*string, error) {
 	PrintMessage("Generating single file backup : "+db, options.Verbosity, Info)
 
 	var args []string
@@ -475,7 +475,7 @@ func GenerateSingleFileBackup(options Options, db string) error {
 
 	if string(err) != "" && !strings.Contains(string(err), "Using a password on the command line interface can be insecure") {
 		PrintMessage("mysqldump error is: "+string(err), options.Verbosity, Error)
-		return errors.New(string(err))
+		return nil, errors.New(string(err))
 	}
 
 	// Compressing
@@ -486,7 +486,7 @@ func GenerateSingleFileBackup(options Options, db string) error {
 
 	if errcreate != nil {
 		PrintMessage("error to create a compressed file: "+filename, options.Verbosity, Error)
-		return errcreate
+		return nil, errcreate
 	}
 
 	defer file.Close()
@@ -498,11 +498,11 @@ func GenerateSingleFileBackup(options Options, db string) error {
 
 	if errcompress := Compress(tw, filename); errcompress != nil {
 		PrintMessage("error to compress file: "+filename, options.Verbosity, Error)
-		return errcompress
+		return nil, errcompress
 	}
 
 	PrintMessage("Single file backup successfull : "+db, options.Verbosity, Info)
-	return nil
+	return &filename, nil
 }
 
 func GetTotalRowCount(tables []Table) int {

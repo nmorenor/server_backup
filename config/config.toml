@@ -11,7 +11,7 @@
     tablethreshold = 5000000
     batchsize = 1000000
     mysqldumppath = "/usr/bin/mysqldump"
-    dailyrotation = 5
+    dailyrotation = 3
     weeklyrotation = 2
     monthlyrotation = 1
     secondsInterval = 3600
@@ -30,6 +30,6 @@
     region = "us-east-1"
     # comma separated ${BucketName}|${prefix_target_on_bucket}|${dirPath}
     dirs = "BACKUP_BUCKET|MY_PREFIX|/home/nacho/target,BACKUP_BUCKET|MY_PREFIX|/home/nacho/target2"
-    dailyrotation = 5
+    dailyrotation = 3
     weeklyrotation = 2
     monthlyrotation = 1
