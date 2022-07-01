@@ -16,6 +16,18 @@
     monthlyrotation = 1
     secondsInterval = 3600
     verbosity = 1
+    # enable db backup on s3
+    s3Backup = false
+    endpoint = "https://sfo3.digitaloceanspaces.com"
+    # access key
+    key = "${yourkey}"
+    # access secret
+    secret = "${yoursecret}"
+    bucket = "${yourbucket}"
+    # us-east-1 is required for digital ocean spaces
+    region = "us-east-1"
+    # bucket prefix for DB
+    s3Key = "database"
 
 [dirbackup]
     enabled = false
@@ -25,7 +37,6 @@
     key = "${yourkey}"
     # access secret
     secret = "${yoursecret}"
-    bucket = "${yourbucket}"
     # us-east-1 is required for digital ocean spaces
     region = "us-east-1"
     # comma separated ${BucketName}|${prefix_target_on_bucket}|${dirPath}
