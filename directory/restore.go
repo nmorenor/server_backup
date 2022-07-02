@@ -78,7 +78,7 @@ func (restore *Restore) RestoreBackup() {
 			suffix := *extractedSuffix
 			targetPath := filepath.Join(restore.Directory, suffix)
 
-			if !checkFileExists(targetPath) {
+			if !CheckFileExists(targetPath) {
 				// file does not exist, delete from remote
 				parentDir := path.Dir(targetPath)
 				if !isDirectory(parentDir) {

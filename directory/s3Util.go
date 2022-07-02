@@ -216,7 +216,7 @@ func (util *S3Util) processCleanFiles(targetPath string, dirs *map[string]bool, 
 }
 
 func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
-	checkSum := fileSha256(targetFile)
+	checkSum := FileSha256(targetFile)
 	if checkSum == nil {
 		errMsg := fmt.Sprintf("Can't get checksum of %s", targetFile)
 		fmt.Println(errMsg)
@@ -267,7 +267,7 @@ func (util *S3Util) DeleteFile(targetKey string) error {
 }
 
 func (util *S3Util) DownloadFile(targetKey string, targetFile string) error {
-	exists := checkFileExists(targetFile)
+	exists := CheckFileExists(targetFile)
 	if exists {
 		err := os.Remove(targetFile)
 		if err != nil {

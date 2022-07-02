@@ -30,7 +30,7 @@
     s3Key = "database"
 
 [dirbackup]
-    enabled = true
+    enabled = false
     secondsInterval = 3600
     endpoint = "https://sfo3.digitaloceanspaces.com"
     # access key
@@ -45,3 +45,22 @@
     weeklyrotation = 2
     monthlyrotation = 1
     ignoreFile = ".upload-ignore"
+
+[typesensebackup]
+    enabled = false
+    secondsInterval = 3600
+    endpoint = "https://sfo3.digitaloceanspaces.com"
+    # access key
+    key = "${yourkey}"
+    # access secret
+    secret = "${yoursecret}"
+    # us-east-1 is required for digital ocean spaces
+    region = "us-east-1"
+    dailyrotation = 3
+    weeklyrotation = 2
+    monthlyrotation = 1
+    targetDir = "/Users/nacho/Desktop/typesense-test"
+    typesenseUrl = "http://localhost:8108"
+    typesenseApiKey = "1234"
+    bucket = "${yourbucket}"
+    bucketPrefix = "${yourbucket_prefix}"

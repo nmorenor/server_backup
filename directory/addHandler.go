@@ -115,7 +115,7 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 				queue.Enqueue(absPath)
 				continue
 			}
-			checkSum := fileSha256(absPath)
+			checkSum := FileSha256(absPath)
 			rel, err := filepath.Rel(handler.Dir, absPath)
 			if checkErr(err) {
 				continue

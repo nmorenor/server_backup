@@ -60,7 +60,7 @@ func (handler *RemoveHandler) handleFileSystemDeletions() {
 			suffix := *extractedSuffix
 			targetPath := filepath.Join(handler.Dir, suffix)
 
-			if !checkFileExists(targetPath) {
+			if !CheckFileExists(targetPath) {
 				// file does not exist, delete from remote
 				prefixUtil.DeleteFile(remotePath)
 			}

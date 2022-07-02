@@ -14,8 +14,8 @@ go build
 ## Run
 
 - To run a backup, edit the config.toml file inside the config directory and just run the executable
-    `./server_backup`
+    `./server-backup`
 - To view the keys and children stored on S3 bucket
-    `./server_backup -view -bucket <your-bucket>`
+    `./server-backup -view -bucket <your-bucket>`
 - To restore a backup:
-    `.server_backup -restore -dir <target-dir> -bucket <your-bucket> -key <target-key> -rotation <target-rotation-key> -date <target-date>`
+    `.server-backup -restore -dir <target-dir> -bucket <your-bucket> -key <target-key> -rotation <target-rotation-key> -date <target-date>`

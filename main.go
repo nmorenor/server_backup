@@ -9,6 +9,7 @@ import (
 	"playus/server-backup/config"
 	"playus/server-backup/database"
 	"playus/server-backup/directory"
+	"playus/server-backup/typesensebackup"
 
 	"github.com/madflojo/tasks"
 )
@@ -72,6 +73,30 @@ func scheduleDirBackup(scheduler *tasks.Scheduler) {
 	directory.Worker.DoBackup()
 }
 
+func scheduleTypesenseBackup(scheduler *tasks.Scheduler) {
+	fmt.Println("Scheduling Typesense Backup")
+	interval := int(config.Conf.Get("typesensebackup.secondsInterval").(int64))
+	_, err := scheduler.Add(&tasks.Task{
+		Mutex:      sync.Mutex{},
+		Interval:   time.Duration(time.Duration(interval) * time.Second),
+		RunOnce:    false,
+		StartAfter: time.Time{},
+		TaskFunc: func() error {
+			fmt.Println("Start running Typesense backup: ")
+			typesensebackup.Worker.DoBackup()
+			return nil
+		},
+		ErrFunc: func(err error) {
+			fmt.Println("Error running Typesense backup: ")
+			fmt.Println(err.Error())
+		},
+	})
+	if err != nil {
+		fmt.Println("Error scheduling Typesense backup")
+	}
+	typesensebackup.Worker.DoBackup()
+}
+
 func runBackups() {
 	fmt.Println("start")
 	scheduler := tasks.New()
@@ -84,6 +109,10 @@ func runBackups() {
 	dirEnabled := config.Conf.Get("dirbackup.enabled").(bool)
 	if dirEnabled {
 		scheduleDirBackup(scheduler)
+	}
+	typesenseEnabled := config.Conf.Get("typesensebackup.enabled").(bool)
+	if typesenseEnabled {
+		scheduleTypesenseBackup(scheduler)
 	}
 
 	fmt.Scanln()

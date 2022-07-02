@@ -189,7 +189,7 @@ func getDirectories(dirs string) []BackupDirectories {
 // package level
 
 func isDirectory(dir string) bool {
-	exists := checkFileExists(dir)
+	exists := CheckFileExists(dir)
 	if !exists {
 		return false
 	}
@@ -239,12 +239,12 @@ func notRunning(worker *DirectoryBackupWorker) {
 	worker.Running = false
 }
 
-func checkFileExists(filePath string) bool {
+func CheckFileExists(filePath string) bool {
 	_, error := os.Stat(filePath)
 	return !errors.Is(error, os.ErrNotExist)
 }
 
-func fileSha256(filePath string) *string {
+func FileSha256(filePath string) *string {
 	f, err := os.Open(filePath)
 	if checkErr(err) {
 		return nil
