@@ -7,6 +7,8 @@ import (
 	"sort"
 	"time"
 
+	ignore "github.com/sabhiram/go-gitignore"
+
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -19,9 +21,10 @@ type AddHandler struct {
 	dailyRotation   int
 	weeklyRotation  int
 	monthlyRotation int
+	IgnoreObject    *ignore.GitIgnore
 }
 
-func NewAddHandler(bucket string, prefix string, dir string, s3Client *s3.S3, uploader *s3manager.Uploader, downloader *s3manager.Downloader, dailyRotation int, weeklyRotation int, monthlyRotation int) *AddHandler {
+func NewAddHandler(bucket string, prefix string, dir string, s3Client *s3.S3, uploader *s3manager.Uploader, downloader *s3manager.Downloader, ignoreObject *ignore.GitIgnore, dailyRotation int, weeklyRotation int, monthlyRotation int) *AddHandler {
 	return &AddHandler{
 		Bucket:          bucket,
 		Dir:             dir,
@@ -30,6 +33,7 @@ func NewAddHandler(bucket string, prefix string, dir string, s3Client *s3.S3, up
 		dailyRotation:   dailyRotation,
 		weeklyRotation:  weeklyRotation,
 		monthlyRotation: monthlyRotation,
+		IgnoreObject:    ignoreObject,
 	}
 }
 
@@ -100,10 +104,12 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 			continue
 		}
 		for _, entry := range entries {
-			if entry.Name() == ".DS_Store" { // TODO: ignore file options
-				continue
-			}
 			absPath := filepath.Join(nextDir, entry.Name())
+			if handler.IgnoreObject != nil {
+				if handler.IgnoreObject.MatchesPath(absPath) {
+					continue
+				}
+			}
 
 			if entry.IsDir() {
 				queue.Enqueue(absPath)
@@ -115,7 +121,11 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 				continue
 			}
 			targetKey := handler.Prefix + "/" + targetPrefix + rel
-			if !handler.util.ObjectExists(targetKey, checkSum) {
+			objectInfo := handler.util.ObjectExists(targetKey, checkSum)
+			if !objectInfo.exists || !objectInfo.sameCheckSum {
+				if objectInfo.exists {
+					handler.util.DeleteFile(targetKey)
+				}
 				handler.util.UploadFile(absPath, targetKey)
 			}
 		}

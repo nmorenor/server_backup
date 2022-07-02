@@ -30,7 +30,7 @@
     s3Key = "database"
 
 [dirbackup]
-    enabled = false
+    enabled = true
     secondsInterval = 3600
     endpoint = "https://sfo3.digitaloceanspaces.com"
     # access key
@@ -44,3 +44,4 @@
     dailyrotation = 3
     weeklyrotation = 2
     monthlyrotation = 1
+    ignoreFile = ".upload-ignore"

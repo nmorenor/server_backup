@@ -13,6 +13,11 @@ import (
 	"github.com/gabriel-vasile/mimetype"
 )
 
+type ObjectExists struct {
+	exists       bool
+	sameCheckSum bool
+}
+
 type S3Util struct {
 	Bucket           string
 	Prefix           string
@@ -52,7 +57,7 @@ func (util *S3Util) HasMore() bool {
 	return util.IsStart() || util.listInputHasMore
 }
 
-func (util *S3Util) ObjectExists(keyFile string, checkSum *string) bool {
+func (util *S3Util) ObjectExists(keyFile string, checkSum *string) ObjectExists {
 	input := &s3.GetObjectInput{
 		Bucket: aws.String(util.Bucket),
 		Key:    aws.String(keyFile),
@@ -60,9 +65,15 @@ func (util *S3Util) ObjectExists(keyFile string, checkSum *string) bool {
 	object, err := util.client.GetObject(input)
 	if object != nil && err == nil && checkSum != nil && object.Metadata != nil {
 		checkSumVal, exists := object.Metadata[SHA256]
-		return exists && (*checkSumVal) == (*checkSum)
+		return ObjectExists{
+			exists:       exists,
+			sameCheckSum: (*checkSumVal) == (*checkSum),
+		}
 	}
-	return object != nil && err == nil
+	return ObjectExists{
+		exists:       object != nil && err == nil,
+		sameCheckSum: false,
+	}
 }
 
 func (util *S3Util) GetNextPage() *[]*s3.Object {

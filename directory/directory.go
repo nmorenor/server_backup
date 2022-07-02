@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	ignore "github.com/sabhiram/go-gitignore"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -60,6 +62,7 @@ type DirectoryBackupWorker struct {
 	WeeklyRotation  int
 	MonthlyRotation int
 	Running         bool
+	IgnoreObject    *ignore.GitIgnore
 }
 
 var (
@@ -67,6 +70,8 @@ var (
 )
 
 func newDirectoryBackupWorker() *DirectoryBackupWorker {
+	object, err := ignore.CompileIgnoreFile(config.Conf.Get("dirbackup.ignoreFile").(string))
+	checkErr(err)
 	worker := &DirectoryBackupWorker{
 		Key:             config.Conf.Get("dirbackup.key").(string),
 		Secret:          config.Conf.Get("dirbackup.secret").(string),
@@ -77,6 +82,7 @@ func newDirectoryBackupWorker() *DirectoryBackupWorker {
 		WeeklyRotation:  int(config.Conf.Get("dirbackup.weeklyrotation").(int64)),
 		MonthlyRotation: int(config.Conf.Get("dirbackup.monthlyrotation").(int64)),
 		Running:         false,
+		IgnoreObject:    object,
 	}
 	return worker
 }
@@ -122,7 +128,7 @@ func (worker *DirectoryBackupWorker) DoBackup() {
 		for j := range nextBucket.Directories {
 			nextDir := nextBucket.Directories[j]
 
-			addHandler := NewAddHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)
+			addHandler := NewAddHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.IgnoreObject, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)
 			addHandler.Handle()
 
 			removeHandler := NewRemoveHandler(targetBucketName, targetPrefix, nextDir, s3Client, uploader, downloader, worker.DailyRotation, worker.WeeklyRotation, worker.MonthlyRotation)

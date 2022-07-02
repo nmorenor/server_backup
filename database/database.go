@@ -108,7 +108,7 @@ func (worker *DatabaseBackupWorker) upload(file string, dbOptions mars.Options) 
 		return
 	}
 
-	addHandler := directory.NewAddHandler(worker.Bucket, worker.S3Key, path.Dir(file), s3Client, uploader, downloader, dbOptions.DailyRotation, dbOptions.WeeklyRotation, dbOptions.MonthlyRotation)
+	addHandler := directory.NewAddHandler(worker.Bucket, worker.S3Key, path.Dir(file), s3Client, uploader, downloader, nil, dbOptions.DailyRotation, dbOptions.WeeklyRotation, dbOptions.MonthlyRotation)
 	addHandler.Handle()
 
 	removeHandler := directory.NewRemoveHandler(worker.Bucket, worker.S3Key, path.Dir(file), s3Client, uploader, downloader, dbOptions.DailyRotation, dbOptions.WeeklyRotation, dbOptions.MonthlyRotation)
