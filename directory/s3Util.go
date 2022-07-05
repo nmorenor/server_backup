@@ -243,14 +243,14 @@ func (util *S3Util) UploadFile(targetFile string, targetKey string) error {
 	}
 	uploadInput.Metadata = map[string]*string{}
 	uploadInput.Metadata[SHA256] = checkSum
-
+	fmt.Println("Uploading path of archive:" + targetFile)
 	result, err := util.uploader.Upload(&uploadInput)
 
 	if checkErr(err) {
 		return err
 	}
 
-	fmt.Println("[INFO] Upload successfully! Path of archive:" + result.Location)
+	fmt.Println("Upload successfully! Path of archive:" + result.Location)
 	return nil
 }
 
@@ -283,6 +283,7 @@ func (util *S3Util) DownloadFile(targetKey string, targetFile string) error {
 
 	defer file.Close()
 
+	fmt.Println("Downloading: ", file.Name())
 	numBytes, err := util.downloader.Download(file,
 		&s3.GetObjectInput{
 			Bucket: aws.String(util.Bucket),
@@ -294,7 +295,7 @@ func (util *S3Util) DownloadFile(targetKey string, targetFile string) error {
 		return err
 	}
 
-	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
+	fmt.Println("Downloaded: ", file.Name(), numBytes, "bytes")
 
 	return nil
 }
