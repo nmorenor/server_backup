@@ -85,6 +85,8 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 	if err != nil {
 		return
 	}
+	workQueue := NewWorkerQueue()
+
 	queue := NewQueue()
 	queue.Enqueue(handler.Dir)
 
@@ -92,6 +94,10 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 	targetPrefix := fmt.Sprintf("%s/%s/", rotation, now.Format(RFC3339NoTime))
 
 	for !queue.Empty() {
+		if workQueue.Size() >= 5 { // TODO: Allow to configure workers
+			workQueue.DoWork()
+		}
+
 		nextDir, err := queue.Dequeue()
 		if err != nil {
 			return
@@ -126,8 +132,11 @@ func (handler *AddHandler) uploadDirectory(rotation string) {
 				if objectInfo.exists {
 					handler.util.DeleteFile(targetKey)
 				}
-				handler.util.UploadFile(absPath, targetKey)
+				workQueue.Add(NewUploadWorker(targetKey, absPath, *handler.util))
 			}
 		}
+	}
+	if workQueue.Size() > 0 {
+		workQueue.DoWork()
 	}
 }

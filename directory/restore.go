@@ -64,8 +64,11 @@ func (restore *Restore) RestoreBackup() {
 	}
 
 	util := NewS3Util(restore.Bucket, restore.Prefix, restore.Directory, s3Client, uploader, downloader)
-
+	workQueue := NewWorkerQueue()
 	for util.HasMore() {
+		if workQueue.Size() >= 5 { // TODO: Allow to configure workers
+			workQueue.DoWork()
+		}
 		for _, next := range *util.GetNextPage() {
 			if next == nil {
 				continue
@@ -77,8 +80,10 @@ func (restore *Restore) RestoreBackup() {
 			}
 			suffix := *extractedSuffix
 			targetPath := filepath.Join(restore.Directory, suffix)
-
 			if !CheckFileExists(targetPath) {
+				if workQueue.Size() >= 5 { // TODO: Allow to configure workers
+					workQueue.DoWork()
+				}
 				// file does not exist, delete from remote
 				parentDir := path.Dir(targetPath)
 				if !isDirectory(parentDir) {
@@ -88,8 +93,11 @@ func (restore *Restore) RestoreBackup() {
 					}
 
 				}
-				util.DownloadFile(remotePath, targetPath)
+				workQueue.Add(NewDownloadWorker(remotePath, targetPath, *util))
 			}
 		}
+	}
+	if workQueue.Size() > 0 { // TODO: Allow to configure workers
+		workQueue.DoWork()
 	}
 }
